@@ -12,12 +12,14 @@ def inserisci_rider_handlers(dati_inseriti):
         consegne_totali = dati_inseriti.get('total_deliveries',0)
         if not nome or not veicolo:
             return {"Errore":"I campi 'name' e 'vehicle' sono obbligatori."}, 400
+        if (not isinstance(nome, str)) or (not nome.strip()):
+              raise ValueError("Il campo 'nome' deve contenere un testo valido.")
         if not controllo_veicolo_valido(veicolo):
             return {
                  "Errore validazione dati": f"Il veicolo '{veicolo}' non è valido.",
                  "Veicoli ammessi": LISTA_VEICOLI_AMMESSI
              }, 400
-        if not isinstance(consegne_totali, int) or consegne_totali < 0:
+        if not (type(consegne_totali) is int) or consegne_totali < 0:
              raise ValueError("Il campo 'total_deliveries' deve essere un numero intero maggiore o uguale a zero.") 
         id_generato = inserisci_rider_nel_db(nome, veicolo.lower(), consegne_totali)
         risposta = {
@@ -79,14 +81,14 @@ def inserisci_recensione_handlers(dati_inseriti):
         customer_name = dati_inseriti.get('customer_name')
         rating = dati_inseriti.get('rating')
         comment = dati_inseriti.get('comment', None)
+        if not isinstance(rider_id, int):
+              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
         if not controllo_id_rider_in_db(rider_id):
             return {
                   "Errore validazione dati": f"L'id del rider inserito '{rider_id}' non è presente nel DB."
               }, 400
         if not rider_id or not customer_name or not rating:
             return {"Errore":"I campi 'rider_id', 'customer_name' e 'rating' sono obbligatori."}, 400
-        if not isinstance(rider_id, int):
-              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
         if not (isinstance(rating, int) and 1<= rating <=5):
               raise ValueError("Il campo 'rating' deve essere un numero intero compreso tra 1 e 5.") 
         if not isinstance(customer_name, str):
