@@ -1,7 +1,7 @@
 import os
 from src.utils import controllo_veicolo_valido
 from src.utils import LISTA_VEICOLI_AMMESSI
-from src.postgres.postgres_handlers import inserisci_rider_nel_db, list_rider_db, list_rider_filtrata_db, controllo_id_rider_in_db, inserisci_recensione_db, aggiorna_recensione_db, controllo_id_review_in_db, cancella_rider_e_recensioni_db
+from src.postgres.postgres_handlers import inserisci_rider_nel_db, list_rider_db, list_rider_filtrata_db, controllo_id_rider_in_db, inserisci_recensione_db, aggiorna_recensione_db, controllo_id_review_in_db, cancella_rider_e_recensioni_db, media_voti_rider_db
 
 def inserisci_rider_handlers(dati_inseriti):
     try:
@@ -152,5 +152,28 @@ def delete_rider_handlers(rider_id):
                 "Messaggio":f"Il rider con id {rider_id} è stato cancellato con successo!"
             }
             return risposta, 200
+    except Exception as e:
+        return {"Errore Server": str(e)}, 500
+
+def media_voti_rider_handlers(rider_id):
+    try:
+        if not controllo_id_rider_in_db(rider_id):
+            return {
+                  "Errore validazione dati": f"L'id del rider inserito '{rider_id}' non è presente nel DB."
+              }, 400
+        
+        media = media_voti_rider_db(rider_id)
+        
+        if media is None:
+            return {
+                "Messaggio": f"Il rider con id {rider_id} non ha ancora ricevuto recensioni.",
+                "Media Voti": 0.0
+            }, 200
+            
+        return {
+            "Messaggio": f"Media voti calcolata con successo per il rider {rider_id}.",
+            "Media Voti": media
+        }, 200
+        
     except Exception as e:
         return {"Errore Server": str(e)}, 500
