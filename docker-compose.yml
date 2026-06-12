@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: utente
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: riders_delivery
+    ports:
+      - "5432:5432"
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utente -d riders_delivery"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: python_app
+    restart: on-failure
+    ports:
+      - "8082:8082"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: utente
+      DB_PASSWORD: password123
+      DB_NAME: riders_delivery
+      PORT: 8082
+
+volumes:
+  postgres_data:

@@ -7,3 +7,27 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+#creiamo una directory per l'applicazione
+WORKDIR /app
+
+#scriviamo delle variabili d'ambiente necessarie
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8082
+
+COPY requirements.txt .
+#copiamo il file requirements.txt nella directory di lavoro del container.
+# questo file contiene l'elenco delle dipendenze Python necessarie per eseguire l'applicazione.
+
+#installiamo le dipendenze Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+#copiamo il codice dell'applicazione nella directory di lavoro
+COPY . .
+
+#esponiamo la porta su cui l'applicazione ascolterà
+EXPOSE 8082
+
+#comando per avviare l'applicazione
+CMD ["python", "main.py"]
+
