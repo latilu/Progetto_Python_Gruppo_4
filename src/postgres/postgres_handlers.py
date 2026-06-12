@@ -64,8 +64,14 @@ def inserisci_rider_nel_db(nome, veicolo, consegne_totali):
         """
 
         cursore.execute(query, (nome, veicolo, consegne_totali))
-        id_generato = cursore.fetchone()[0]
-        conn_db.commit()
+        id_generato = cursore.fetchone()[0] #recupera l'id generato dalla query di inserimento. quindi,
+        #se l'inserimento è andato a buon fine, id_generato conterrà l'id del nuovo rider 
+        # appena inserito. l'id viene restituito al chiamante della funzione, che potrà
+        #  utilizzarlo per eventuali operazioni future su quel rider 
+        # (ad esempio, per aggiungere recensioni o per visualizzare i dettagli del rider).
+
+        conn_db.commit() #applica le modifiche al database (necessario dopo un'operazione di 
+        #inserimento, aggiornamento o cancellazione)
         cursore.close()
         return id_generato
     except (Exception, psycopg2.DatabaseError) as e:
@@ -80,15 +86,19 @@ def list_rider_db():
         conn_db = connessione_db()
         cursore = conn_db.cursor()
 
-        query = """
+        query = """          
             SELECT r.id, r.name, r.vehicle, r.total_deliveries,
-                COALESCE(ROUND(AVG(rev.rating), 1), 0.0), COUNT(rev.id)
+                COALESCE(ROUND(AVG(rev.rating), 1), 0.0), COUNT(rev.id) 
             FROM riders r
             LEFT JOIN reviews rev ON r.id = rev.rider_id
             GROUP BY r.id
             ORDER BY r.id;
         """
-
+#questa query SQL recupera l'elenco dei rider insieme alla media delle valutazioni e
+#  al numero di recensioni per ciascun rider.
+#La query utilizza una LEFT JOIN per unire la tabella "riders" con la tabella "reviews" sulla
+#  base dell'id del rider. #coalesce serve per gestire il caso in cui un rider non abbia recensioni:
+#  in quel caso, invece di restituire NULL, restituirà 0.0 come media delle valutazioni.
         cursore.execute(query)
         risultato = cursore.fetchall()
         cursore.close()
