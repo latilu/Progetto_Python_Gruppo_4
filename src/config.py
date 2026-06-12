@@ -1,0 +1,1 @@
+LISTA_VEICOLI_AMMESSI = ['auto', 'moto', 'scooter', 'bicicletta', 'furgone']

@@ -319,3 +319,28 @@ def cancella_rider_e_recensioni_db(rider_id):
     finally:
         if conn_db is not None:
             conn_db.close()
+
+def media_voti_rider_db(rider_id):
+    conn_db = None
+    try:
+        conn_db = connessione_db()
+        cursore = conn_db.cursor()
+
+        cursore.execute("""
+            SELECT ROUND(AVG(rating), 1) as media
+            FROM reviews
+            WHERE rider_id = %s
+        """, (rider_id,))
+
+        risultato = cursore.fetchone()
+        cursore.close()
+
+        if risultato and risultato[0] is not None:
+            return float(risultato[0])
+        return None
+
+    except (Exception, psycopg2.DatabaseError) as e:
+        raise Exception(f"Errore database: {e}")
+    finally:
+        if conn_db is not None:
+            conn_db.close()
