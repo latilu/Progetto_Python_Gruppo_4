@@ -1,7 +1,17 @@
 import os
 from src.utils import controllo_veicolo_valido
 from src.utils import LISTA_VEICOLI_AMMESSI
-from src.postgres.postgres_handlers import inserisci_rider_nel_db, list_rider_db, list_rider_filtrata_db, controllo_id_rider_in_db, inserisci_recensione_db, aggiorna_recensione_db, controllo_id_review_in_db, cancella_rider_e_recensioni_db
+from src.postgres.postgres_handlers import (
+    inserisci_rider_nel_db, 
+    list_rider_db, 
+    list_rider_filtrata_db, 
+    controllo_id_rider_in_db, 
+    inserisci_recensione_db, 
+    aggiorna_recensione_db, 
+    controllo_id_review_in_db, 
+    cancella_rider_e_recensioni_db,
+    media_voti_rider_db
+)
 
 def inserisci_rider_handlers(dati_inseriti):
     try:
@@ -10,16 +20,20 @@ def inserisci_rider_handlers(dati_inseriti):
         nome = dati_inseriti.get('name')
         veicolo = dati_inseriti.get('vehicle')
         consegne_totali = dati_inseriti.get('total_deliveries',0)
-        if not nome or not veicolo:
-            return {"Errore":"I campi 'name' e 'vehicle' sono obbligatori."}, 400
+        
+        if not isinstance(nome, str) or not nome.strip():
+            return {"Errore":"Il campo 'name' è obbligatorio e non può essere vuoto."}, 400
+        if not isinstance(veicolo, str) or not veicolo.strip():
+            return {"Errore":"Il campo 'vehicle' è obbligatorio e non può essere vuoto."}, 400
         if not controllo_veicolo_valido(veicolo):
             return {
                  "Errore validazione dati": f"Il veicolo '{veicolo}' non è valido.",
                  "Veicoli ammessi": LISTA_VEICOLI_AMMESSI
              }, 400
-        if not isinstance(consegne_totali, int) or consegne_totali < 0:
+        if type(consegne_totali) is not int or consegne_totali < 0:
              raise ValueError("Il campo 'total_deliveries' deve essere un numero intero maggiore o uguale a zero.") 
-        id_generato = inserisci_rider_nel_db(nome, veicolo.lower(), consegne_totali)
+        
+        id_generato = inserisci_rider_nel_db(nome.strip(), veicolo.lower(), consegne_totali)
         risposta = {
             "Messaggio":"Rider creato con successo!",
             "Rider":{
@@ -79,21 +93,26 @@ def inserisci_recensione_handlers(dati_inseriti):
         customer_name = dati_inseriti.get('customer_name')
         rating = dati_inseriti.get('rating')
         comment = dati_inseriti.get('comment', None)
+        
+        # 1. Validazione Tipi e Formato (PRIMA del DB)
+        if type(rider_id) is not int:
+              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
+        if type(rating) is not int or not (1 <= rating <= 5):
+              raise ValueError("Il campo 'rating' deve essere un numero intero compreso tra 1 e 5.") 
+        if not isinstance(customer_name, str) or not customer_name.strip():
+            return {
+                  "Errore validazione dati": "Il customer_name è obbligatorio e deve essere testo valido."
+              }, 400
+        if comment is not None and (not isinstance(comment, str) or not comment.strip()):
+             comment = None # se è solo spazi, lo consideriamo nullo
+
+        # 2. Controllo DB (Solo se i dati sono sani)
         if not controllo_id_rider_in_db(rider_id):
             return {
                   "Errore validazione dati": f"L'id del rider inserito '{rider_id}' non è presente nel DB."
               }, 400
-        if not rider_id or not customer_name or not rating:
-            return {"Errore":"I campi 'rider_id', 'customer_name' e 'rating' sono obbligatori."}, 400
-        if not isinstance(rider_id, int):
-              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
-        if not (isinstance(rating, int) and 1<= rating <=5):
-              raise ValueError("Il campo 'rating' deve essere un numero intero compreso tra 1 e 5.") 
-        if not isinstance(customer_name, str):
-            return {
-                  "Errore validazione dati": "Il customer_name deve essere una stringa."
-              }, 400
-        id_generato = inserisci_recensione_db(rider_id, customer_name, rating, comment)
+              
+        id_generato = inserisci_recensione_db(rider_id, customer_name.strip(), rating, comment)
         risposta = {
             "Messaggio":"Recensione creata con successo!",
             "Recensione":{
@@ -116,15 +135,20 @@ def aggiorna_recensione_handlers(dati_inseriti):
             return {"Errore":"Il body della richiesta è vuoto, inserisci i dati del driver."}, 400
         id_review = dati_inseriti.get('id')
         comment = dati_inseriti.get('comment')
+        
+        # 1. Validazione Tipi e Formato (PRIMA del DB)
+        if type(id_review) is not int:
+              raise ValueError("Il campo 'id' deve essere un numero intero.")
+        if not isinstance(comment, str) or not comment.strip():
+              raise ValueError("Il campo 'comment' deve contenere un testo valido.")
+              
+        # 2. Controllo DB
         if not controllo_id_review_in_db(id_review):
             return {
                   "Errore validazione dati": f"L'id della recensione inserito '{id_review}' non è presente nel DB."
               }, 400
-        if not isinstance(id_review, int):
-              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
-        if (not isinstance(comment, str)) or (not comment.strip()):
-              raise ValueError("Il campo 'comment' deve contenere un testo valido.")
-        id_review_aggiornata = aggiorna_recensione_db(id_review, comment)
+              
+        id_review_aggiornata = aggiorna_recensione_db(id_review, comment.strip())
         risposta = {
             "Messaggio":"Commento recensione aggiornato con successo!",
             "Recensione":{
@@ -154,3 +178,23 @@ def delete_rider_handlers(rider_id):
             return risposta, 200
     except Exception as e:
         return {"Errore Server": str(e)}, 500
+def media_voti_rider_handlers(rider_id):
+    try:
+        if not controllo_id_rider_in_db(rider_id):
+            return {
+                "Errore": f"Il rider con id {rider_id} non esiste."
+            }, 404
+        
+        media = media_voti_rider_db(rider_id)
+        if media is None:
+            return {
+                "rider_id": rider_id,
+                "messaggio": "Il rider non ha recensioni"
+            }, 200
+        else:
+            return {
+                "rider_id": rider_id,
+                "media_voti": media
+            }, 200
+    except Exception as e:
+        return {"Errore Server nell'handler": str(e)}, 500

@@ -125,6 +125,29 @@ def list_rider_filtrata_db(veicolo_da_filtrare):
         if conn_db is not None:
             conn_db.close()
 
+def media_voti_rider_db(rider_id):
+    conn_db = None
+    try:
+        conn_db = connessione_db()
+        cursore = conn_db.cursor()
+
+        query = """
+            SELECT ROUND(AVG(rating), 1)
+            FROM reviews
+            WHERE rider_id = %s;
+        """
+
+        cursore.execute(query, (rider_id,))
+        risultato = cursore.fetchone()
+        cursore.close()
+        return float(risultato[0]) if risultato and risultato[0] is not None else None
+    except (Exception, psycopg2.DatabaseError) as e:
+        raise Exception(f"Errore database: {e}")
+    finally:
+        if conn_db is not None:
+            conn_db.close()
+
+
 def esegui_reset_db():
     reset_attivo = os.getenv("ABILITA_RESET_DB", "False").lower() == "true"
     if not reset_attivo:
