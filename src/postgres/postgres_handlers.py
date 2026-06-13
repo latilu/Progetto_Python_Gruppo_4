@@ -1,10 +1,9 @@
 import os
 import psycopg2
-from flask import jsonify
 
 def connessione_db():
     return psycopg2.connect(
-        host = os.getenv("DB_HOST", "localhost"),
+        host = os.getenv("DB_HOST", "db"), #localhost
         port = os.getenv("DB_PORT", "5432"),
         user = os.getenv("DB_USER"),
         password = os.getenv("DB_PASSWORD"),

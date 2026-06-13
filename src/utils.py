@@ -1,6 +1,4 @@
 #import os
-#import psycopg2
-#from flask import jsonify
 from src.config import LISTA_VEICOLI_AMMESSI
 
 #LISTA_VEICOLI_AMMESSI = os.getenv("LISTA_VEICOLI_AMMESSI")

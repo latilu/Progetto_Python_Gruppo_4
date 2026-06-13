@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: riders_delivery
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
     - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,6 +32,7 @@ services:
       DB_PASSWORD: password123
       DB_NAME: riders_delivery
       PORT: 8082
+      ABILITA_RESET_DB: "false"   # Impostare su 'True' per svuotare e ripopolare il DB all'avvio.
 
 volumes:
   postgres_data:

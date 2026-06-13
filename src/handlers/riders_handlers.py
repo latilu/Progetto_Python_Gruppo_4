@@ -56,12 +56,16 @@ def list_rider_handlers(parametro_url):
         #formattazione di righe_db da tuple a dizionari JSON
         risultato_finale = []
         for riga in righe_db:
+            if float(riga[4]) == 0.0:
+                valore_rating_average = "Il driver non ha recensioni nel DB"
+            else:
+                valore_rating_average = float(riga[4])
             rider_formattato ={
                 "id": riga[0],
                 "name": riga[1],
                 "vehicle": riga[2],
                 "total_deliveries": riga[3],
-                "rating_average": float(riga[4]), # forza in float per evitare strani formati decimali nel JSON
+                "rating_average": valore_rating_average,
                 "total_reviews": riga[5]
             }
             risultato_finale.append(rider_formattato)
@@ -81,8 +85,10 @@ def inserisci_recensione_handlers(dati_inseriti):
         customer_name = dati_inseriti.get('customer_name')
         rating = dati_inseriti.get('rating')
         comment = dati_inseriti.get('comment', None)
-        if not isinstance(rider_id, int):
-              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
+        if not isinstance(rider_id, int) or isinstance(rider_id, bool):
+            raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
+        if rider_id<0:
+            raise ValueError("Il campo 'rider_id' non può essere negativo.")
         if not controllo_id_rider_in_db(rider_id):
             return {
                   "Errore validazione dati": f"L'id del rider inserito '{rider_id}' non è presente nel DB."
@@ -118,12 +124,14 @@ def aggiorna_recensione_handlers(dati_inseriti):
             return {"Errore":"Il body della richiesta è vuoto, inserisci i dati del driver."}, 400
         id_review = dati_inseriti.get('id')
         comment = dati_inseriti.get('comment')
+        if not isinstance(id_review, int) or isinstance(id_review, bool):
+            raise ValueError("Il campo 'id_review' deve essere un numero intero.")
+        if id_review<0:
+            raise ValueError("Il campo 'id_review' non può essere negativo.")
         if not controllo_id_review_in_db(id_review):
             return {
                   "Errore validazione dati": f"L'id della recensione inserito '{id_review}' non è presente nel DB."
               }, 400
-        if not isinstance(id_review, int):
-              raise ValueError("Il campo 'rider_id' deve essere un numero intero.")
         if (not isinstance(comment, str)) or (not comment.strip()):
               raise ValueError("Il campo 'comment' deve contenere un testo valido.")
         id_review_aggiornata = aggiorna_recensione_db(id_review, comment)
