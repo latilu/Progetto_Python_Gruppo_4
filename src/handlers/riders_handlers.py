@@ -1,6 +1,5 @@
-import os
 from src.utils import controllo_veicolo_valido
-from src.utils import LISTA_VEICOLI_AMMESSI
+from src.config import LISTA_VEICOLI_AMMESSI
 from src.postgres.postgres_handlers import inserisci_rider_nel_db, list_rider_db, list_rider_filtrata_db, controllo_id_rider_in_db, inserisci_recensione_db, aggiorna_recensione_db, controllo_id_review_in_db, cancella_rider_e_recensioni_db, media_voti_rider_db
 
 def inserisci_rider_handlers(dati_inseriti):
@@ -12,9 +11,9 @@ def inserisci_rider_handlers(dati_inseriti):
         consegne_totali = dati_inseriti.get('total_deliveries',0)
         if not nome or not veicolo:
             return {"Errore":"I campi 'name' e 'vehicle' sono obbligatori."}, 400
-        if (not isinstance(nome, str)) or (not nome.strip()):
+        if (not isinstance(nome, str)) or (not nome.strip()):   #rimuovo gli spazi per il controllo
               raise ValueError("Il campo 'nome' deve contenere un testo valido.")
-        if not controllo_veicolo_valido(veicolo):
+        if not controllo_veicolo_valido(veicolo.lower()):
             return {
                  "Errore validazione dati": f"Il veicolo '{veicolo}' non è valido.",
                  "Veicoli ammessi": LISTA_VEICOLI_AMMESSI
@@ -32,6 +31,7 @@ def inserisci_rider_handlers(dati_inseriti):
             }
         }
         return risposta, 201
+    
     except ValueError as e:
         return {"Errore validazione dati": str(e)}, 400
     except Exception as e:
@@ -45,7 +45,7 @@ def list_rider_handlers(parametro_url):
             numero_rider = len(righe_db)
             messaggio = f"Elenco completo di tutti i {numero_rider} riders."
         else:
-            if not controllo_veicolo_valido(veicolo):
+            if not controllo_veicolo_valido(veicolo.lower()):
                 return {
                     "Errore validazione dati": f"Il veicolo '{veicolo}' non è valido.",
                     "Veicoli ammessi": LISTA_VEICOLI_AMMESSI
@@ -74,6 +74,7 @@ def list_rider_handlers(parametro_url):
             "Risultati":risultato_finale
         }
         return risposta, 200
+    
     except Exception as e:
         return {"Errore Server nell'handler della GET": str(e)}, 500
 
@@ -113,6 +114,7 @@ def inserisci_recensione_handlers(dati_inseriti):
             }
         }
         return risposta, 201
+    
     except ValueError as e:
         return {"Errore validazione dati": str(e)}, 400
     except Exception as e:
@@ -122,7 +124,7 @@ def aggiorna_recensione_handlers(dati_inseriti):
     try:
         if not dati_inseriti:
             return {"Errore":"Il body della richiesta è vuoto, inserisci i dati del driver."}, 400
-        id_review = dati_inseriti.get('id')
+        id_review = dati_inseriti.get('id_review')
         comment = dati_inseriti.get('comment')
         if not isinstance(id_review, int) or isinstance(id_review, bool):
             raise ValueError("Il campo 'id_review' deve essere un numero intero.")
@@ -138,11 +140,12 @@ def aggiorna_recensione_handlers(dati_inseriti):
         risposta = {
             "Messaggio":"Commento recensione aggiornato con successo!",
             "Recensione":{
-                "rider_id": id_review_aggiornata,
+                "id_review": id_review_aggiornata,
                 "comment": comment
             }
         }
-        return risposta, 201
+        return risposta, 200
+    
     except ValueError as e:
         return {"Errore validazione dati": str(e)}, 400
     except Exception as e:
@@ -162,6 +165,7 @@ def delete_rider_handlers(rider_id):
                 "Messaggio":f"Il rider con id {rider_id} è stato cancellato con successo!"
             }
             return risposta, 200
+        
     except Exception as e:
         return {"Errore Server": str(e)}, 500
 

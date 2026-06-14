@@ -33,6 +33,7 @@ def inizializza_db():
     )
 
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -41,17 +42,25 @@ def inizializza_db():
             cursore.execute(comando)
 
         conn_db.commit()
-        cursore.close()
         print("Database PostgreSQL inizializzato con successo (tabelle create/verificate)!")
 
-    except (Exception, psycopg2.DatabaseError) as e:
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
         raise Exception(f"Errore durante l'inizializzazione del database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def inserisci_rider_nel_db(nome, veicolo, consegne_totali):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -64,23 +73,30 @@ def inserisci_rider_nel_db(nome, veicolo, consegne_totali):
 
         cursore.execute(query, (nome, veicolo, consegne_totali))
         id_generato = cursore.fetchone()[0] #recupera l'id generato dalla query di inserimento. quindi,
-        #se l'inserimento è andato a buon fine, id_generato conterrà l'id del nuovo rider 
-        # appena inserito. l'id viene restituito al chiamante della funzione, che potrà
-        #  utilizzarlo per eventuali operazioni future su quel rider 
-        # (ad esempio, per aggiungere recensioni o per visualizzare i dettagli del rider).
+        # se l'inserimento è andato a buon fine, id_generato conterrà l'id del nuovo rider appena inserito.
 
         conn_db.commit() #applica le modifiche al database (necessario dopo un'operazione di 
         #inserimento, aggiornamento o cancellazione)
-        cursore.close()
+        
         return id_generato
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante l'inserimento nel database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def list_rider_db():
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -93,23 +109,32 @@ def list_rider_db():
             GROUP BY r.id
             ORDER BY r.id;
         """
-#questa query SQL recupera l'elenco dei rider insieme alla media delle valutazioni e
-#  al numero di recensioni per ciascun rider.
-#La query utilizza una LEFT JOIN per unire la tabella "riders" con la tabella "reviews" sulla
-#  base dell'id del rider. #coalesce serve per gestire il caso in cui un rider non abbia recensioni:
-#  in quel caso, invece di restituire NULL, restituirà 0.0 come media delle valutazioni.
+# questa query SQL recupera l'elenco dei rider insieme alla media delle valutazioni e
+#   al numero di recensioni per ciascun rider.
+# La query utilizza una LEFT JOIN per unire la tabella "riders" con la tabella "reviews" sulla
+#   base dell'id del rider. COALESCE serve per gestire il caso in cui un rider non abbia recensioni:
+#   in quel caso, invece di restituire NULL, restituirà 0.0 come media delle valutazioni.
         cursore.execute(query)
         risultato = cursore.fetchall()
-        cursore.close()
         return risultato
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante la lettura del database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def list_rider_filtrata_db(veicolo_da_filtrare):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -126,11 +151,19 @@ def list_rider_filtrata_db(veicolo_da_filtrare):
 
         cursore.execute(query, (veicolo_da_filtrare,))
         risultato = cursore.fetchall()
-        cursore.close()
         return risultato
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante la lettura del database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
@@ -141,6 +174,7 @@ def esegui_reset_db():
         return #interrompe la funzione
     else:
         conn_db = None
+        cursore = None
         try:
             conn_db = connessione_db()
             cursore = conn_db.cursor()
@@ -193,17 +227,25 @@ def esegui_reset_db():
             conn_db.commit()
             print("Database resettato e popolato con successo!")
         
+        except psycopg2.DatabaseError as e:
+            if conn_db:
+                conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+                raise RuntimeError(f"Errore critico del Database: {e}")
+
         except Exception as e:
             if conn_db:
-                conn_db.rollback()
+                conn_db.rollback()  # Annulla tutto se qualcosa fallisce
                 print(f"Errore durante il reset del database: {str(e)}")
+                raise RuntimeError(f"Il reset del database è fallito: {e}")
         finally:
-            if conn_db:
+            if cursore is not None:
                 cursore.close()
+            if conn_db is not None:
                 conn_db.close()
 
 def controllo_id_rider_in_db(rider_id):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -215,19 +257,29 @@ def controllo_id_rider_in_db(rider_id):
                 """, (rider_id,))
 
         risultato = cursore.fetchone()
-        cursore.close()
+        
         if risultato:
             return True
         else:
             return False
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante la lettura del database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def inserisci_recensione_db(rider_id, customer_name, rating, comment):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -241,16 +293,26 @@ def inserisci_recensione_db(rider_id, customer_name, rating, comment):
         cursore.execute(query, (rider_id, customer_name, rating, comment))
         id_generato = cursore.fetchone()[0]
         conn_db.commit()
-        cursore.close()
+        
         return id_generato
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante l'inserimento nel database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def aggiorna_recensione_db(id_review, comment):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -263,16 +325,25 @@ def aggiorna_recensione_db(id_review, comment):
 
         cursore.execute(query, (comment, id_review))
         conn_db.commit()
-        cursore.close()
         return id_review
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+    
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante l'aggiornamento nel database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def controllo_id_review_in_db(id_review):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -284,19 +355,28 @@ def controllo_id_review_in_db(id_review):
                 """, (id_review,))
 
         risultato = cursore.fetchone()
-        cursore.close()
         if risultato:
             return True
         else:
             return False
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+        
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante la lettura del database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 
 def cancella_rider_e_recensioni_db(rider_id):
     conn_db = None
+    cursore = None
     try:
         conn_db = connessione_db()
         cursore = conn_db.cursor()
@@ -308,14 +388,22 @@ def cancella_rider_e_recensioni_db(rider_id):
 
         righe_cancellate = cursore.rowcount
         conn_db.commit()
-        cursore.close()
         if righe_cancellate>0:
             return True
         else:
             return False
-    except (Exception, psycopg2.DatabaseError) as e:
-        raise Exception(f"Errore database: {e}")
+        
+    except psycopg2.DatabaseError as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise RuntimeError(f"Errore critico del Database: {e}")
+    except Exception as e:
+        if conn_db:
+            conn_db.rollback()  # Annulla tutto se qualcosa fallisce
+        raise Exception(f"Errore durante l'aggiornamento nel database: {e}")
     finally:
+        if cursore is not None:
+            cursore.close()
         if conn_db is not None:
             conn_db.close()
 

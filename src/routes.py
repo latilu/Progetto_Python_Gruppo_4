@@ -57,7 +57,7 @@ def insert_review():
     except Exception as e:
         return jsonify({"Errore Server": str(e)}), 500
 
-@riders_bp.route('/update_review', methods=['POST'])
+@riders_bp.route('/update_review', methods=['PATCH'])
 def update_review():
     try:
         dati_inseriti = request.get_json()

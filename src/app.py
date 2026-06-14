@@ -9,7 +9,7 @@ def create_app():
         inizializza_db()
         esegui_reset_db()
     except Exception as e:
-        print(f"ERRORE DI AVVIO: Impossibile connettersi a PostgreSQL. \nDettaglio: {e}")
-        sys.exit(1)
+        print(f"ERRORE DI AVVIO: Impossibile connettersi a PostgreSQL. Dettaglio: {e}")
+        sys.exit(1)     #Se il DB non risponde, per sicurezza chiudo l'app forzatamente
     app.register_blueprint(riders_bp)
     return app
